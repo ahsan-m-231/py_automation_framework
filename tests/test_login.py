@@ -4,7 +4,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from basee_conf.webdriver_listner import WebDriveWrapper
 from utilities import data_source
-import time
 
 
 class TestValidLogin(WebDriveWrapper):
@@ -24,15 +23,19 @@ class TestValidLogin(WebDriveWrapper):
         # self.driver.find_element(By.XPATH, "//span[text(),'Calender']")
         assert_that(self.driver.title).is_equal_to(expected_title)
 
-    def test_invalid_login(self):
-        self.driver.find_element(By.NAME, "authUser").send_keys("john")
-        self.driver.find_element(By.ID, "clearPass").send_keys("peter")
+    @pytest.mark.parametrize("username, password, language, expected_title", data_source.test_invalid_data)
+    def test_invalid_login(self, username, password, language, expected_title):
+        self.driver.find_element(By.NAME, "authUser").send_keys(username)
+        self.driver.find_element(By.ID, "clearPass").send_keys(password)
         select_lang = Select(self.driver.find_element(By.XPATH, "//select[@name='languageChoice']"))
-        select_lang.select_by_visible_text("Dutch")
+        select_lang.select_by_visible_text(language)
         self.driver.find_element(By.ID, "login-button").location_once_scrolled_into_view
+        invalid_login = self.driver.find_element(By.XPATH, "//div[contains(text(),'Invalid')]").text
         self.driver.find_element(By.ID, "login-button").click()
-        assert_message = assert_that(self.driver.title).is_equal_to(self.driver.title)
-        print("assert....", assert_message)
+        print("assert....", invalid_login)
+        assert_that(invalid_login).contains("Invalid")
+        assert_that(expected_title).does_not_match(self.driver.title)
+
 
 
 class TestLoginUI(WebDriveWrapper):
@@ -50,3 +53,4 @@ class TestLoginUI(WebDriveWrapper):
         placeholder_password = self.driver.find_element(By.ID, "clearPass").get_attribute("placeholder")
         assert_that(placeholder_username).is_equal_to("Username") and assert_that(placeholder_password).is_equal_to(
             "Password")
+
